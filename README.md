@@ -1,6 +1,6 @@
-# Disclosure Application
+# Compliance Application
 
-Basic VBOX Disclosure API sample using Java 25, Spring Boot 4.1.0, Azure SQL Database, JPA, validation, i18n, SLF4J, Azure Monitor OpenTelemetry configuration, global error handling, and MockMvc.
+Basic workflow Disclosure API sample using Java 25, Spring Boot 4.1.0, Azure SQL Database, JPA, validation, i18n, SLF4J, Azure Monitor OpenTelemetry configuration, global error handling, and MockMvc.
 
 ## Prerequisites
 - JDK 25

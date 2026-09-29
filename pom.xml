@@ -8,11 +8,11 @@
         <version>4.1.0</version>
         <relativePath/>
     </parent>
-    <groupId>com.vbox</groupId>
-    <artifactId>disclosureapplication</artifactId>
+    <groupId>com.workflow</groupId>
+    <artifactId>compliance-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>disclosureapplication</name>
-    <description>VBOX Disclosure service sample</description>
+    <name>compliance-service</name>
+    <description>Workflow Compliance service sample</description>
     <properties>
         <java.version>25</java.version>
         <azure-monitor-opentelemetry.version>1.6.0</azure-monitor-opentelemetry.version>

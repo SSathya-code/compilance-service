@@ -75,7 +75,7 @@ Keep test classes in the same package structure as production classes.
 Example:
 
 src/main/java/
-└── com/volvo/workaction/
+└── com/workflow/workaction/
 ├── api/
 │   └── WorkActionController.java
 └── application/
@@ -84,7 +84,7 @@ src/main/java/
 └── GetWorkActionUseCase.java
 
 src/test/java/
-└── com/volvo/workaction/
+└── com/workflow/workaction/
 ├── api/
 │   └── WorkActionControllerTest.java
 └── application/

@@ -1,0 +1,193 @@
+package com.workflow.compilance.api;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.workflow.compilance.api.dto.request.ComplianceDto;
+import com.workflow.compilance.api.dto.request.ComplianceSearchDto;
+import com.workflow.compilance.api.dto.request.CreateComplianceDto;
+import com.workflow.compilance.api.dto.request.ReceiptDisplayRequest;
+import com.workflow.compilance.api.dto.response.ApiResponse;
+import com.workflow.compilance.api.dto.response.ReceiptDisplayResponse;
+import com.workflow.compilance.api.dto.response.SearchResponseDto;
+import com.workflow.compilance.application.ComplianceUseCase;
+import com.workflow.compilance.application.ReceiptDisplayUseCase;
+import com.workflow.compilance.i18n.MessageResolver;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.Instant;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(ComplianceController.class)
+@Import(ComplianceControllerApiTest.TestConfig.class)
+class ComplianceControllerApiTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+//
+//    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private ComplianceUseCase useCase;
+
+    @MockitoBean
+    private ReceiptDisplayUseCase receiptDisplayUseCase;
+
+    @MockitoBean
+    private MessageResolver messageResolver;
+
+
+    // ---------------------------------------------------------
+    // POST /api/disclosures
+    // ---------------------------------------------------------
+
+    @Test
+    void shouldCreateCompliance() throws Exception {
+
+        // Given
+        CreateComplianceDto request = new CreateComplianceDto(
+                "REF-12345",
+                "CUST-101",
+                "Basic disclosure"
+        );
+
+        ComplianceDto response = new ComplianceDto(
+                1L,
+                "REF-12345",
+                "CUST-101",
+                "Basic disclosure",
+                "DRAFT",
+                Instant.parse("2026-08-28T00:00:00Z")
+        );
+
+        when(useCase.create(any(CreateComplianceDto.class)))
+                .thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(post("/api/disclosures/v1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.message").value(""))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.warnings").isArray())
+                .andExpect(jsonPath("$.data.id").value(1));
+
+        // Verify
+        verify(useCase)
+                .create(any(CreateComplianceDto.class));
+    }
+
+
+    // ---------------------------------------------------------
+    // POST /api/disclosures/search
+    // ---------------------------------------------------------
+
+    @Test
+    void shouldSearchCompliances() throws Exception {
+
+        // Given
+        ComplianceSearchDto request = new ComplianceSearchDto(
+                "REF-12345",
+                "CUST-101",
+                "DRAFT",
+                0,
+                20
+        );
+
+        ApiResponse response = new ApiResponse(
+                "SUCCESS",
+                200,
+                "",
+                List.of(),
+                List.of(),
+                new SearchResponseDto(
+                        List.of(
+                                new ComplianceDto(
+                                        1L,
+                                        "REF-12345",
+                                        "CUST-101",
+                                        "Basic disclosure",
+                                        "DRAFT",
+                                        Instant.parse("2026-08-28T00:00:00Z")
+                                )
+                        ),
+                        0,
+                        20,
+                        1L,
+                        1
+                )
+        );
+
+        when(useCase.search(any(ComplianceSearchDto.class)))
+                .thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(post("/api/disclosures/v1/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.message").value(""))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.warnings").isArray())
+                .andExpect(jsonPath("$.data.items[0].id").value(1));
+
+        // Verify
+        verify(useCase)
+                .search(any(ComplianceSearchDto.class));
+    }
+
+    @Test
+    void shouldPublishReceiptDisplayEvent() throws Exception {
+        ReceiptDisplayRequest request = new ReceiptDisplayRequest(
+                "REC-1001", "WA-1001", "CUST-101", "DISC-1001", "review-team");
+        when(receiptDisplayUseCase.display(any(ReceiptDisplayRequest.class)))
+                .thenReturn(new ReceiptDisplayResponse("event-1", "REC-1001", "receipt-display",
+                        Instant.parse("2026-09-25T10:30:00Z")));
+
+        mockMvc.perform(post("/api/disclosures/v1/receipt/display")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.statusCode").value(202))
+                .andExpect(jsonPath("$.data.receiptId").value("REC-1001"))
+                .andExpect(jsonPath("$.data.topic").value("receipt-display"));
+
+        verify(receiptDisplayUseCase).display(any(ReceiptDisplayRequest.class));
+    }
+
+    @TestConfiguration
+    static class TestConfig {
+
+        @Bean
+        ObjectMapper objectMapper() {
+            return JsonMapper.builder()
+                    .addModule(new JavaTimeModule())
+                    .build();
+        }
+    }
+}
+
